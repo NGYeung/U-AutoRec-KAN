@@ -84,7 +84,7 @@ class DAE(nn.Module):
 
         noise = gaussian_noise*self.noise_strength
         hidden_rep = self.encoder(da_CF_matrix + noise)
-        decoded  = self.decoder(hidden_rep)
+        decoded  = self.decoder(hidden_rep) 
         
         return decoded, hidden_rep # return both
         
@@ -138,6 +138,9 @@ class VAE(nn.Module):
             nn.ReLU(),
             nn.Sigmoid() #sigmoid for non-exclusive outputs
             )
+        
+        nn.init.kaiming_uniform_(self.mu, nonlinearity='relu')
+        nn.init.kaiming_uniform_(self.log_var.weight, nonlinearity='relu')
 
 
     def reparameterize(self, mu, log_var):

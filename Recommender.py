@@ -1,0 +1,144 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Sep 26 23:13:26 2024
+
+@author: Yiyang Liu
+"""
+
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import torch.nn.functional as F
+import torch.optim.lr_scheduler as lr_scheduler
+import math
+import time
+
+
+from model.Matrix_models import MatrixFactorization_VAE
+from torch.utils.data import DataLoader, Subset 
+
+
+
+
+class AEReco:
+    
+    def __init__(self, config):
+        
+        
+        self.config = config
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        #self.dataset = DataLoader(data) 
+        user_feature_size = self.config.user_feature_size
+        item_feature_size = self.config.user_feature_size
+        num_item = self.config.num_items
+        batch = self.config.batch_size
+        
+        
+        self.model = MatrixFactorization_VAE(user_feature_size, item_feature_size, num_item, batch_size = batch).to(self.device)
+        #self.model = nn.DataParallel(self.model,device_ids=[0,1,2,3])
+        self.target = None
+        self.user = None
+        self.film = None
+        self.optimizer = optim.ASGD(self.model.parameters).to(self.device) #add learning rate and other options
+        self.lossfn = nn.MSELoss()
+        self.loss_log = []
+        
+        
+        print("\n \t ----------- Model Loaded ------------")
+        print("\t *Total Params* = ",sum(p.numel() for p in self.model.parameters()))
+        print("\t *Trainable Params* = ",sum(p.numel() for p in self.model.parameters() if p.requires_grad))
+        
+        
+    def train(self, user, film, target, epoch = 1):
+        '''
+        
+
+        Parameters
+        ----------
+        user : TYPE
+            DESCRIPTION.
+        film : TYPE
+            DESCRIPTION.
+        epoch : TYPE, optional
+            DESCRIPTION. The default is 1.
+
+        Returns
+        -------
+        None.
+
+        '''
+        
+        self.user = DataLoader(user, batch_size=self.config.batch_size, shuffle = True, num_workers=4)
+        
+        start = time.time()
+        
+        for i, user_batch in enumerate(self.user):
+            recovered_matrix = self.model(user_batch, film, rating_range = 5)
+            
+            mse = self.lossfn(recovered_matrix, target)
+            self.optimizer.zero_grad()
+            mse.backward()
+            self.loss_log.append(mse.detach())
+            
+            
+            print(f'\n\t Epoch : {epoch + 1}')
+            print(f'\n\t RMSE : {round(math.sqrt(mse.detach()),4)}')
+            print('\t Training time current epoch: {round((time.time()-start),2)}')
+            
+            if (epoch+1) % self.config.checkpoint_freq == 0:
+                
+                print(f'\n\t Epoch : {epoch + 1}')
+                print(f'\n\t RMSE : {round(math.sqrt(mse.detach()),4)}')
+                print('\t Training time current epoch: {round((time.time()-start),2)}')
+            
+                
+                self.save_checkpoint(self.model, self.optimizer, epoch+1, self.file+str(epoch+1)+'.pt')
+        
+        
+        
+    def predict(self, user, film):
+        
+        self.model.eval()
+        self.film = film
+        
+        
+    def preprocesser(self):
+        
+        pass
+    
+    
+    def config(self, configuration_file):
+        
+        pass
+    
+    
+    
+    def save_checkpoint(self, model, optimizer, epoch, filename):
+        checkpoint = {
+            'model_state_dict': model.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            'epoch': epoch
+            }
+        torch.save(checkpoint, filename)
+        
+        
+
+    def load_checkpoint(self, filename, model, optimizer=None):
+    
+        checkpoint = torch.load(filename)
+        model.load_state_dict(checkpoint['model_state_dict'])
+        if optimizer:
+            optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+            epoch = checkpoint['epoch']
+            return model, optimizer, epoch
+    
+
+        
+        
+        
+        
+        
+        
+        
+        
