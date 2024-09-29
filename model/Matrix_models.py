@@ -23,7 +23,7 @@ class MatrixFactorization_VAE(nn.Module):
     '''
     
     def __init__(self, user_feature_size, item_feature_size, num_item, user_batch_size = 128, 
-                 AE_hidden_dimension = 16, embedding_dimension = 48, autoencoder = 'VAE' ):
+                 AE_hidden_dimension = 512, embedding_dimension = 24, autoencoder = 'VAE' ):
         '''
 
         Parameters
