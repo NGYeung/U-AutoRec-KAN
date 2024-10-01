@@ -13,16 +13,17 @@ import torch
 import torch.nn as nn
 
 from transformers import BertTokenizer
+from torch.utils.data import DataLoader
 #import spacy
 
 
 
 
 filepath = {
-    'user': r"/content/drive/MyDrive/RL_movie_recommender_files/Dataset_baseline/ml-100k/User_EVERYTHING.csv",
-    'rating': r"/content/drive/MyDrive/RL_movie_recommender_files/Dataset_baseline/ml-100k/rating_info.csv",
-    'movie': r"/content/drive/MyDrive/RL_movie_recommender_files/Dataset_baseline/ml-100k/movies_info.csv",
-    'embedding': r"/content/drive/MyDrive/RL_movie_recommender_files/Dataset_baseline/ml-100k/encoded_text_dim16.pt"}
+    'user': r"/content/drive/MyDrive/RecSys/ml-100k/User_EVERYTHING.csv",
+    'rating': r"/content/drive/MyDrive/RecSys/ml-100k/rating_info.csv",
+    'movie': r"/content/drive/MyDrive/RecSys/ml-100k/movies_info.csv",
+    'embedding': r"/content/drive/MyDrive/RecSys/ml-100k/encoded_text_dim16.pt"}
 
 class Movie_100K():
     
@@ -64,8 +65,8 @@ class Movie_100K():
         user:{'user_id':[Int], 'age':[Int], gender:[Int] 'occupation':nparray}
         '''
         self.item = self.data.iloc[idx,:].to_dict()
-        self.item.pop('item_id_y')
-        self.item.pop('item_id_x')
+        #self.item.pop('item_id_y')
+        self.item.pop('item_id')
         self.item.pop('Unnamed: 0')
         #self.item.pop('Unnamed: 0_y')
         if self.need_embedding:
@@ -84,33 +85,35 @@ class Movie_100K():
         self.users = pd.read_csv(self.path['user'])
         
         self.users = self.users.apply(self.process_user, axis = 1)
+        self.users = self.users[['user_id', 'age', 'gender','zip_code','occupation']]
         self.user_num = self.users.shape[0]
         #print(users.iloc[1])
-        self.movies = pd.read_csv(self.path['movie'])
+        self.items = pd.read_csv(self.path['movie'])
         #print(movies.iloc[1])
-        self.movies = self.movies.apply(self.process_movie, axis = 1)
-        self.item_num = self.movies.shape[0]
+        self.items = self.items.apply(self.process_movie, axis = 1)
+        self.items = self.items[['movie_id','date','genre']]
+        self.item_num = self.items.shape[0]
         #print(movies.iloc[1])
         ratings = pd.read_csv(self.path['rating'])
-        movie_avg = ratings[['item_id','rating']].groupby('item_id').mean().reset_index()
-        movie_avg.columns = ['item_id','film_avg_rating']
-        self.movies = pd.merge(self.movies, movie_avg, left_on='movie_id', right_on='item_id')
+        #movie_avg = ratings[['item_id','rating']].groupby('item_id').mean().reset_index()
+        #movie_avg.columns = ['item_id','film_avg_rating']
+        #self.items = pd.merge(self.items, movie_avg, left_on='movie_id', right_on='item_id')
         
-        #self.movies = self.movies.drop('item_id')
+        #self.items = self.items.drop('item_id')
    
         
         
         # merge all into a big table
         big_table = pd.merge(self.users, ratings, left_on='user_id', right_on='user_id')
-        big_table = pd.merge(big_table, self.movies, left_on='item_id', right_on='movie_id')
+        big_table = pd.merge(big_table, self.items, left_on='item_id', right_on='movie_id')
         
         self.data = big_table
-        #self.data = self.data.apply(self.encode_user, axis = 1)
-        #self.data = self.data.apply(self.encoder_dates, axis = 1)
+    
         if self.need_embedding:
             self.embedding = torch.load(self.path['embedding'])
 
-        self.movies = self.movies[['movie_id','title','date','genre','film_avg_rating']]
+        self.items = self.items[['movie_id','date','genre']]
+        #self.items['title_embedding'] = self.embedding
         
         
     
@@ -136,19 +139,22 @@ class Movie_100K():
         
         row['date'] = np.array(dt_vec)
         
+      
+        
         g = row['genre']
         g = g[1:len(g)-1].split()
         g = [int(i) for i in g]
-        
+        row['genre'] = np.array(g)
+        '''
         rep = np.zeros((20,))
         bases = fourier_bases(19, 20)
         for i in range(len(g)):
             rep += g[i]*bases[i]
         
         row['genre'] = rep/np.linalg.norm(rep)
-        
+        '''
         return row[['movie_id','title','date','genre']]
-
+       
 
     def process_user(self,row):
 
@@ -189,11 +195,10 @@ class Movie_100K():
         row['zip_code'] = zip_code
          #change to select only the infos.
         
-        return row[['user_id','age','gender','zip_code','average_rating','occupation']]
+        return row[['user_id','age','gender','zip_code','occupation']]
 
 
     
-@jit
 def Data2Embedding(Data):
     '''
     A function to map the data to states in RL
@@ -246,3 +251,20 @@ def fourier_bases(frequency_count, n_points):
         bases.append(base)
     
     return np.array(bases)
+    
+    
+class CombinedDataset:
+    def __init__(self, dataset1, dataset2, dataset3):
+        assert len(dataset1) == len(dataset2), "Datasets must be of the same length"
+        self.dataset1 = dataset1
+        self.dataset2 = dataset2
+        self.dataset3 = dataset3
+
+    def __len__(self):
+        return len(self.dataset1)
+
+    def __getitem__(self, idx):
+        data1 = self.dataset1[idx]
+        data2 = self.dataset2[idx]
+        data3 = self.dataset3[idx]
+        return data1, data2, data3

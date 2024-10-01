@@ -11,7 +11,8 @@ import torch
 import torch.nn as nn
 import math
 
-from AutoEncoders import VAE, VAE_KAN, DAE
+
+from AutoEncoders import VAE,  DAE
 
 
 
@@ -22,10 +23,10 @@ class MatrixFactorization_VAE(nn.Module):
     A "Matrix Factorization type" CF filtering recommender method using VAE
     '''
     
-    def __init__(self, user_feature_size, item_feature_size, num_item, user_batch_size = 128, 
-                 AE_hidden_dimension = 512, embedding_dimension = 24, autoencoder = 'VAE' ):
+    def __init__(self, user_feature_size, item_feature_size, num_item, user_batch_size = 64, 
+                 AE_hidden_dimension = 2048, embedding_dimension = 24, autoencoder = 'VAE' ):
         '''
-
+        
         Parameters
         ----------
         user_feature_size : int
@@ -55,23 +56,24 @@ class MatrixFactorization_VAE(nn.Module):
 
         '''
         
+        #super(MatrixFactorization_VAE, self).__init__()
+        super(MatrixFactorization_VAE, self).__init__()
+        self.ae = autoencoder
         
         print("\n \t ----------- Model = Recommender with Autoencoder ------------")
         self.user_projection = nn.Sequential(
-            nn.Linear(user_feature_size, 96),
+            nn.Linear(user_feature_size, embedding_dimension),
             nn.ReLU(), #ReLU or SeLU
-            nn.Linear(96, embedding_dimension),
             nn.Dropout(0.1),
-            nn.LayerNorm()
+            nn.LayerNorm(embedding_dimension)
             )
         
         
-        self.item_projection = nn.Sequentialnn.Sequential(
-            nn.Linear(user_feature_size, 96),
+        self.item_projection = nn.Sequential(
+            nn.Linear(item_feature_size, embedding_dimension),
             nn.ReLU(), #ReLU or SeLU
-            nn.Linear(96, embedding_dimension),
             nn.Dropout(0.1),
-            nn.LayerNorm()
+            nn.LayerNorm(embedding_dimension)
             )
         
         # size: user_batch_size x num_item
@@ -86,26 +88,49 @@ class MatrixFactorization_VAE(nn.Module):
             self.AE = DAE(num_item*user_batch_size, AE_hidden_dimension)
  
         elif autoencoder == 'VAE_KAN':
-            self.AE = VAE_KAN(num_item*user_batch_size, AE_hidden_dimension)
+            pass
+            #self.AE = VAE_KAN(num_item*user_batch_size, AE_hidden_dimension)
         
         else:
             raise ValueError('autoencoder = VAE, DAE, or VAE_KAN')
+        torch.autograd.set_detect_anomaly(True)
             
 
             
     def forward(self, user_feature, item_feature, rating_range = 5):
         
-        user = self.user_projection(user_feature) # user_batch_size x embedding_dim
-        item = self.item_projection(item_feature) # num_items x embedding_dim
-        
-        self.CF_matrix = user @ item # user_batch_size x num_items
+        user = self.user_projection(user_feature.unsqueeze(1)) # user_batch_size x 1 x embedding_dim
+        item = self.item_projection(item_feature.unsqueeze(1)) # num_items x 1x embedding_dim
+        #print(user.shape)
+        #print(item.shape)
+        self.CF_matrix = user.squeeze(1) @ item.squeeze(1).T # user_batch_size x num_items
         self.CF_matrix = self.CF_matrix.view(-1) # FLATTEN IT!
         
+        self.CF_matrix = (self.CF_matrix - self.CF_matrix.min()) / (self.CF_matrix.max() - self.CF_matrix.min())
         
-        Reconstruction = rating_range*self.AE(self.CF_matrix)
-        # training with MSE or CrossEntropy
+        if self.ae == "VAE":
+            Reconstruction,mean, log_var = self.AE(self.CF_matrix)
+            if torch.isnan(Reconstruction).any():
+                print("NaNs found in Reconstruction")
+            
+  
+            # training with MSE or CrossEntropy
         
-        return Reconstruction
+        
+        
+            return Reconstruction, mean, log_var
+        
+        if self.ae =='DAE':
+            Reconstruction,_, _ = self.AE(self.CF_matrix)
+            if torch.isnan(Reconstruction).any():
+                print("NaNs found in Reconstruction")
+            
+  
+            # training with MSE or CrossEntropy
+        
+        
+        
+            return Reconstruction, None, None
         
         
         

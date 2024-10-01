@@ -65,8 +65,8 @@ class Movie_100K():
         user:{'user_id':[Int], 'age':[Int], gender:[Int] 'occupation':nparray}
         '''
         self.item = self.data.iloc[idx,:].to_dict()
-        self.item.pop('item_id_y')
-        self.item.pop('item_id_x')
+        #self.item.pop('item_id_y')
+        self.item.pop('item_id')
         self.item.pop('Unnamed: 0')
         #self.item.pop('Unnamed: 0_y')
         if self.need_embedding:
@@ -85,17 +85,19 @@ class Movie_100K():
         self.users = pd.read_csv(self.path['user'])
         
         self.users = self.users.apply(self.process_user, axis = 1)
+        self.users = self.users[['user_id', 'age', 'gender','zip_code','occupation']]
         self.user_num = self.users.shape[0]
         #print(users.iloc[1])
         self.items = pd.read_csv(self.path['movie'])
         #print(movies.iloc[1])
         self.items = self.items.apply(self.process_movie, axis = 1)
+        self.items = self.items[['movie_id','date','genre']]
         self.item_num = self.items.shape[0]
         #print(movies.iloc[1])
         ratings = pd.read_csv(self.path['rating'])
-        movie_avg = ratings[['item_id','rating']].groupby('item_id').mean().reset_index()
-        movie_avg.columns = ['item_id','film_avg_rating']
-        self.items = pd.merge(self.items, movie_avg, left_on='movie_id', right_on='item_id')
+        #movie_avg = ratings[['item_id','rating']].groupby('item_id').mean().reset_index()
+        #movie_avg.columns = ['item_id','film_avg_rating']
+        #self.items = pd.merge(self.items, movie_avg, left_on='movie_id', right_on='item_id')
         
         #self.items = self.items.drop('item_id')
    
@@ -111,7 +113,7 @@ class Movie_100K():
         if self.need_embedding:
             self.embedding = torch.load(self.path['embedding'])
 
-        self.items = self.items[['movie_id','date','genre','film_avg_rating']]
+        self.items = self.items[['movie_id','date','genre']]
         #self.items['title_embedding'] = self.embedding
         
         
@@ -138,19 +140,22 @@ class Movie_100K():
         
         row['date'] = np.array(dt_vec)
         
+      
+        
         g = row['genre']
         g = g[1:len(g)-1].split()
         g = [int(i) for i in g]
-        
+        row['genre'] = np.array(g)
+        '''
         rep = np.zeros((20,))
         bases = fourier_bases(19, 20)
         for i in range(len(g)):
             rep += g[i]*bases[i]
         
         row['genre'] = rep/np.linalg.norm(rep)
-        
+        '''
         return row[['movie_id','title','date','genre']]
-
+       
 
     def process_user(self,row):
 
@@ -191,7 +196,7 @@ class Movie_100K():
         row['zip_code'] = zip_code
          #change to select only the infos.
         
-        return row[['user_id','age','gender','zip_code','average_rating','occupation']]
+        return row[['user_id','age','gender','zip_code','occupation']]
 
 
     
@@ -251,7 +256,21 @@ def fourier_bases(frequency_count, n_points):
 
     
     
+class CombinedDataset(Dataset):
+    def __init__(self, dataset1, dataset2, dataset3):
+        assert len(dataset1) == len(dataset2), "Datasets must be of the same length"
+        self.dataset1 = dataset1
+        self.dataset2 = dataset2
+        self.dataset3 = dataset3
 
+    def __len__(self):
+        return len(self.dataset1)
+
+    def __getitem__(self, idx):
+        data1 = self.dataset1[idx]
+        data2 = self.dataset2[idx]
+        data3 = self.dataset3[idx]
+        return data1, data2, data3
     
         
         
