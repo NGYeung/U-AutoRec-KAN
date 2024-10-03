@@ -1,4 +1,4 @@
-##User-based collaborative filtering recommender system with Auto Encoder
+# User-based collaborative filtering recommender system with Auto Encoder
 
 This repository provides an implementation of a user-based CF rating prediction algorithm using linear autoencoder and KAN based autoencoder.
 
