@@ -13,16 +13,16 @@ import torch
 import torch.nn as nn
 import math
 
-#from fastkan import FastKANLayer
-
-
-# or KAN implementation
+from fastkan import FastKANLayer
 '''
 git clone https://github.com/ZiyaoLi/fast-kan
 cd fast-kan
 pip install .
 
 '''
+
+# or KAN implementation
+
 
 
 
@@ -57,23 +57,20 @@ class DAE(nn.Module):
         super(DAE, self).__init__()
         
         self.hidden = hidden_size
-        
+        self.mu = nn.Parameter(torch.randn(self.hidden))
         self.noise_strength = noise
         
         self.encoder = nn.Sequential(
-            nn.Linear(matrix_size,1024),
-            nn.ReLU(),
-            nn.Linear(1024, self.hidden),
-            nn.ReLU(), # Parameter to tune: the size of hidden layer (Rank of CF??)
+            nn.Linear(matrix_size, self.hidden),
+            #nn.SELU(), # Parameter to tune: the size of hidden layer (Rank of CF??)
             )
         
         self.decoder = nn.Sequential(
-            nn.Linear(self.hidden, 1024),
-            nn.ReLU(),
-            nn.Linear(1024, matrix_size),
-            nn.ReLU(),
+            nn.Linear(self.hidden, matrix_size),
+            #nn.SELU(),
             nn.Sigmoid() #sigmoid for non-exclusive outputs
             )
+        self.b = nn.Parameter(torch.randn(matrix_size))
 
 
     
@@ -83,8 +80,8 @@ class DAE(nn.Module):
         gaussian_noise = torch.rand_like(da_CF_matrix) #create the gaussian noise. std = 1 mean = 0
 
         noise = gaussian_noise*self.noise_strength
-        hidden_rep = self.encoder(da_CF_matrix + noise)
-        decoded  = self.decoder(hidden_rep) *5
+        hidden_rep = self.encoder(da_CF_matrix + noise) + self.mu
+        decoded  = self.decoder(hidden_rep) *5 + self.b
         
         return decoded, None, None # return both
         
@@ -125,16 +122,12 @@ class VAE(nn.Module):
         
         
         self.encoder = nn.Sequential(
-            nn.Linear(matrix_size, 1024),
-            nn.SELU(),
-            nn.Linear(1024, self.hidden),
+            nn.Linear(matrix_size, self.hidden),
             nn.SELU(), # Parameter to tune: the size of hidden layer (Rank of CF??)
             )
         
         self.decoder = nn.Sequential(
-            nn.Linear(self.hidden, 1024),
-            nn.SELU(),
-            nn.Linear(1024, matrix_size),
+            nn.Linear(self.hidden, matrix_size),
             nn.SELU(),
             nn.Sigmoid() #sigmoid for non-exclusive outputs
             )
@@ -195,13 +188,11 @@ class VAE_KAN(nn.Module):
         
         
         self.encoder = nn.Sequential(
-            FastKANLayer(matrix_size, 2048),
-            FastKANLayer(2048, self.hidden), # Parameter to tune: the size of hidden layer (Rank of CF??)
+            FastKANLayer(matrix_size, self.hidden), # Parameter to tune: the size of hidden layer (Rank of CF??)
             )
         
         self.decoder = nn.Sequential(
-            FastKANLayer(self.hidden, 2048),
-            FastKANLayer(2048, matrix_size),
+            FastKANLayer(self.hidden, matrix_size),
             nn.Sigmoid() #sigmoid for non-exclusive outputs
             )
         
@@ -209,23 +200,31 @@ class VAE_KAN(nn.Module):
     def reparameterize(self, mu, log_var):
             
         # compute standard deviation from log variance
+        
+        if torch.isnan(mu).any() or torch.isnan(log_var).any():
+            print("NaNs found in mean or log_var!")
+        
+        # Adding clipping to log_var to avoid extreme values
+        log_var = torch.clamp(log_var, min=-5, max=5)
+        
         std = torch.exp(log_var/2)
         sample = torch.rand_like(std) # create a random matrix with the same shape with std = 1
-        
-        return sample*std + mu
     
+        return sample*std + mu
     
     
     def forward(self, da_CF_matrix):
         
 
-        #hidden_rep = self.encoder(da_CF_matrix)
-        mean = self.mu(hidden_rep)
-        log_var = self.log_var(hidden_rep)
+        hidden = self.encoder(da_CF_matrix)
+
+        mean = self.mu(hidden)
+        log_var = self.log_var(hidden)
         sample = self.reparameterize(mean, log_var)
         decoded  = self.decoder(sample)*5
-        
-        return decoded.unsqueeze(0), mean.unsqueeze(0), log_var.unsqueeze(0)
+
+        return decoded, mean, log_var
+    
     
         
 
@@ -262,13 +261,11 @@ class DAE_KAN(nn.Module):
         self.noise_strength = noise
         
         self.encoder = nn.Sequential(
-            FastKANLayer(matrix_size, 2048),
-            FastKANLayer(2048, self.hidden),
+            FastKANLayer(matrix_size, self.hidden),
             )
         
         self.decoder = nn.Sequential(
-            FastKANLayer(self.hidden, 2048),
-            FastKANLayer(2048, matrix_size),
+            FastKANLayer(self.hidden, matrix_size),
             nn.Sigmoid() #sigmoid for non-exclusive outputs
             )
 

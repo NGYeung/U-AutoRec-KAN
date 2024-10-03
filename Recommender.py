@@ -16,7 +16,7 @@ import time
 from numba import jit
 import pandas as pd
 
-from model.Matrix_models import MatrixFactorization_VAE
+from model.Matrix_models import MatrixFactorization_AE
 from torch.utils.data import DataLoader, Subset 
 import yaml
 from tqdm import tqdm
@@ -28,10 +28,9 @@ class AEReco:
     def __init__(self, configuration_file=None):
         
         
-
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
-        self.config()
+        self.config(configuration_file)
         #self.dataset = DataLoader(data) 
         user_feature_size = self.user_feature_size
         item_feature_size = self.item_feature_size
@@ -39,18 +38,21 @@ class AEReco:
         batch = self.batch_size
         
         
-        self.model = MatrixFactorization_VAE(
+        self.model = MatrixFactorization_AE(
             user_feature_size, item_feature_size, num_item, user_batch_size = batch, 
-            AE_hidden_dimension = self.AE_bottleneck, autoencoder = self.AEmodel
+            AE_hidden_dimension = self.AE_bottleneck, autoencoder = self.AEmodel, 
+            noise = self.noise_level, embedding_dimension = self.embedding_dim
                                              ).to(self.device)
-        #self.model = nn.DataParallel(self.model,device_ids=[0,1,2,3])
+        #self.model = nn.DataParallel(self.model,device_ids=[0,1,2,3]) #when there are multiple gpus to use....
         self.target = None
         self.user = None
         self.film = None
         self.mask = None
-        self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)#add learning rate and other options
+        self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
         self.lossfn = nn.MSELoss()
         self.loss_log = []
+        self.scheduler = optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, mode='min', factor=0.1, patience=10) #learning rate scheduler
+     
         
         
         print("\n \t ----------- Model Loaded ------------")
@@ -65,34 +67,48 @@ class AEReco:
         self.mask = data[2].clone().detach().to(self.device).float()
         self.film = film.clone().detach().to(self.device).float()
         #print(self.user.shape, self.target.shape, self.mask.shape, self.film.shape)
+        
+        
+    def mse_loss(self, predict, target, mask):
+        # Create a mask with 1s and 0s indicating the presence of a rating
+
+    
+        # Calculate MSE only for non-empty entries
+        mse = torch.sum(mask * (predict - target) ** 2) / torch.sum(mask)
+        return mse
+
 
         
         
-    def train(self, dataset, film, epoch = 10):
+    def train(self, dataset, film, test_dataset ,epoch = 10):
         '''
         
 
         Parameters
         ----------
-        user : TYPE
-            DESCRIPTION.
-        film : TYPE
-            DESCRIPTION.
-        epoch : TYPE, optional
-            DESCRIPTION. The default is 1.
+        user : torch.tensor
+            the tensor storing user preference
+        film : torch.tensor
+            the tensor storing film representation
+        epoch : int, optional
+            number of training epoch. The default is 1.
 
         Returns
         -------
         None.
 
         '''
-        # TODO: randomly shuffle the user; so the target is also different.
-        
-        mse_loss_func = nn.MSELoss()
+       
+     
 
         for i in range(epoch):
+
+            # Set the model to training mode
+            self.model.train()
             epoch_loss = 0
             start = time.time()
+
+            
 
             with tqdm(dataset, unit="batch") as tepoch:
                 for count, data in enumerate(tepoch):
@@ -105,56 +121,117 @@ class AEReco:
                         print(f"NaNs in film at epoch {i}, batch {count}")
 
                     if self.AEmodel == 'VAE':
-                        recovered_matrix, mean, log_var = self.model(self.user, self.film, rating_range=5)
+                        recovered_matrix, mean, log_var = self.model(self.user, self.film, rating_range=5, 
+                                                                    embedding_dimension = self.embedding_dim)
                         KL_div = -0.5 * torch.sum(1 + log_var - mean.pow(2) - log_var.exp())
-                        loss = self.lossfn(recovered_matrix * self.mask.view(-1), self.target.view(-1)) + KL_div
+                        loss = self.mse_loss(recovered_matrix, self.target, self.mask) + KL_div
 
                         if torch.isnan(loss).any():
                             print("NaNs found in total_loss")
                             break
-                    else:
+                    elif self.AEmodel == 'DAE':
                         recovered_matrix, _, _ = self.model(self.user, self.film, rating_range=5)
-                        loss = self.lossfn(recovered_matrix * self.mask.view(-1), self.target.view(-1))
+                        
+                        loss = self.mse_loss(recovered_matrix.squeeze(1), self.target, self.mask)
+                        
+                    elif self.AEmodel == "DAE_KAN":
+                        recovered_matrix, _, _ = self.model(self.user, self.film, rating_range=5)
+                        
+                        loss = self.mse_loss(recovered_matrix.squeeze(1), self.target, self.mask)
+                    else:
+                        raise ValueError('autoencoder = VAE, DAE, or DAE_KAN')
+                        
+                        
+                    # L2 Regularization
+                    l2_loss = torch.sum(torch.tensor(0.0, requires_grad=True)).to(self.device)
+                    for param in self.model.parameters():
+                        l2_loss = l2_loss + torch.sum(param ** 2).to(self.device)
+                    #print('check regularization:', loss, l2_loss)
+                        
+                    loss_tot = loss + self.lambda_l2 * l2_loss
+                    actual_loss = self.mse_loss(torch.round(recovered_matrix.squeeze(1)), self.target, self.mask)
 
-                    entry = torch.count_nonzero(self.mask)
+                    
                     total = self.mask.shape[0]*self.mask.shape[1]
-                    epoch_loss += (loss.detach().item())**2/entry*total
+                    epoch_loss += actual_loss.detach().item()
                     self.optimizer.zero_grad()
+                    #torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
+                    
+                    loss_tot.backward()
                     torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
+                    self.scheduler.step(loss)
                     self.optimizer.step()
-                    loss.backward()
-                    self.optimizer.step()
-                    self.loss_log.append(epoch_loss / (count + 1))
+                    
+                    
 
-                    tepoch.set_postfix(loss=loss.item())
+                    tepoch.set_postfix(loss=loss.item()/(count+1))
 
-            r = torch.round(recovered_matrix.detach() * self.mask.view(-1))
-            real_mse = mse_loss_func(r, self.target.view(-1))
 
-            avg_epoch_loss = math.sqrt(epoch_loss.item())
-            rmse = math.sqrt(real_mse.item())/entry*total
+            
+            avg_epoch_loss = math.sqrt(epoch_loss/(1+count))
+            self.loss_log.append(avg_epoch_loss)
+            
             end = time.time()
 
-            print(f'\n\t Epoch : {i + 1}, RMSE = {round(avg_epoch_loss, 4)}')
+            print(f'\n\t Epoch : {i + 1}, Average Training RMSE = {round(avg_epoch_loss, 4)}')
             #print(f'\t RMSE : {round(rmse.item(), 4)}')
             print(f'\t Training time for current epoch: {round(end - start, 2)} seconds')
+            
+            #------eval-------------------------------------
+            self.predict(test_dataset, self.film)
 
             if (i + 1) % self.save_freq == 0:
                 print(f'checkpoint saved at epoch {i+1}.')
-                self.save_checkpoint( self.optimizer, i + 1, f'{self.file}{i + 1}.pt')
+                self.save_checkpoint( self.optimizer, i + 1, f'{self.file}{i + 1}_{self.run_id}.pt')
         
         
         
-    def predict(self, user, film, mask, label):
+    def predict(self, test_dataset, film):
         
-        
+     
+
         start = time.time()
+        # Set the model to evaluation mode
         self.model.eval()
-        r = self.model(user, film)
+        test_loss = 0
+        total_entries = 0
+
+        with torch.no_grad():
+       
+            for i, data in enumerate(test_dataset):
+                
+                user = data[0].clone().detach().to(self.device).float()
+                target = data[1].clone().detach().to(self.device).float()
+                mask = data[2].clone().detach().to(self.device).float()
+                film = film.clone().detach().to(self.device).float()
+                
+                total_entries = total_entries + torch.sum(mask)
+                # Check if there are NaNs in inputs
+                if torch.isnan(user).any():
+                    raise ValueError("NaNs detected in user input data.")
+                if torch.isnan(target).any():
+                    raise ValueError("NaNs detected in target data.")
+                if torch.isnan(mask).any():
+                    raise ValueError("NaNs detected in mask data.")
+                if torch.isnan(film).any():
+                    raise ValueError("NaNs detected in film data.")
+
+            
+            
+                # Forward pass
+                recovered_matrix, _, _ = self.model(user, film, rating_range=5)
+                #print(recovered_matrix, target)
+                if torch.isnan(recovered_matrix).any():
+                    raise ValueError("NaNs detected in the recovered matrix output.")
+                loss = self.mse_loss(torch.round(recovered_matrix.squeeze(1)), self.target, self.mask)*torch.sum(mask)
+
+                test_loss =  test_loss + loss
+              
+      
+   
         
-        rmse = nn.MSELoss(r * mask.view(-1) , label.view(-1))
-        print(f'\n\t RMSE : {round(math.sqrt(rmse),4)}')
-        print('\t Evaluation time: {round((time.time()-start),2)}')
+        rmse = math.sqrt(test_loss/total_entries)
+        print(f'\t RMSE on testing set : {round(rmse,4)}')
         
         
         
@@ -162,6 +239,7 @@ class AEReco:
         
     
     def preprocessor(self, dataset, fullset, train = True):
+        '''The preprocessor. put the dataset in to desire input form'''
         
         rating_matrix = np.zeros((fullset.user_num, fullset.item_num))
         mask = np.zeros((fullset.user_num, fullset.item_num))
@@ -202,7 +280,7 @@ class AEReco:
             
             
         for i, user in enumerate(fullset.users.values):
-            #print(np.concatenate([np.atleast_1d(item).ravel() for item in user]))
+           
             user_matrix[i,:39] = np.concatenate([np.atleast_1d(item).ravel() for item in user])[1:]
             
     
@@ -222,16 +300,14 @@ class AEReco:
             
         
     
-    
-    
-    
     def config(self, configuration_file=None):
+        '''The configuration class'''
         
         if not configuration_file:
             #default for 100K Dataset
             
-            self.batch_size = 64
-            self.learning_rate = 1e-5
+            self.batch_size = 128
+            self.learning_rate = 1e-3
             self.item_num = 1682
             self.user_num = 943
             self.item_feature_size = 26
@@ -239,9 +315,15 @@ class AEReco:
             self.AEmodel = 'DAE'
             self.AE_bottleneck = 512
             self.file = r'/content/drive/MyDrive/RecSys/model_checkpoints/VAE_' #for google colab
-            self.save_freq = 30
-        
-        
+            self.save_freq = 90
+            self.lambda_l2 = 0.0001
+            self.test_ratio = 0.2
+            self.dataset_size = 100000
+            self.noise_level = 0.01
+            self.embedding_dim = 24
+            self.run_id = ''
+            
+            
         else:
             with open(configuration_file, 'r') as file:
                 config = yaml.safe_load(file)
@@ -256,6 +338,14 @@ class AEReco:
             self.user_feature_size = config.get('user_feature_size')
             self.AEmodel = config.get('AutoEncoder')
             self.AE_bottleneck = config.get('bottle_neck_size')
+            self.file = config.get('checkpoint_prefix')
+            self.save_freq = config.get('checkpoint_save_every')
+            self.lambda_l2 = config.get('lambda')
+            self.test_ratio = config.get('test_split')
+            self.dataset_size = config.get('data_size')
+            self.noise_level = config.get('noise_level')
+            self.embedding_dim = config.get('embedding_dim')
+            self.run_id = config.get('run_id')
 
 
 

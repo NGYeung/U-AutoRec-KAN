@@ -18,13 +18,13 @@ from AutoEncoders import VAE,  DAE
 
 
 
-class MatrixFactorization_VAE(nn.Module):
+class MatrixFactorization_AE(nn.Module):
     '''
     A "Matrix Factorization type" CF filtering recommender method using VAE
     '''
     
     def __init__(self, user_feature_size, item_feature_size, num_item, user_batch_size = 64, 
-                 AE_hidden_dimension = 2048, embedding_dimension = 24, autoencoder = 'VAE' ):
+                 AE_hidden_dimension = 256, embedding_dimension = 24, autoencoder = 'DAE', noise = 0.05 ):
         '''
         
         Parameters
@@ -56,15 +56,15 @@ class MatrixFactorization_VAE(nn.Module):
 
         '''
         
-        #super(MatrixFactorization_VAE, self).__init__()
-        super(MatrixFactorization_VAE, self).__init__()
+
+        super(MatrixFactorization_AE, self).__init__()
         self.ae = autoencoder
         
         print("\n \t ----------- Model = Recommender with Autoencoder ------------")
         self.user_projection = nn.Sequential(
             nn.Linear(user_feature_size, embedding_dimension),
             nn.ReLU(), #ReLU or SeLU
-            nn.Dropout(0.1),
+            #nn.Dropout(0.1),
             nn.LayerNorm(embedding_dimension)
             )
         
@@ -72,7 +72,7 @@ class MatrixFactorization_VAE(nn.Module):
         self.item_projection = nn.Sequential(
             nn.Linear(item_feature_size, embedding_dimension),
             nn.ReLU(), #ReLU or SeLU
-            nn.Dropout(0.1),
+            #nn.Dropout(0.1),
             nn.LayerNorm(embedding_dimension)
             )
         
@@ -82,14 +82,14 @@ class MatrixFactorization_VAE(nn.Module):
         
         print(f"\n \t \t Autoencoder = {autoencoder} ")
         if autoencoder == 'VAE':
-            self.AE = VAE(num_item*user_batch_size, AE_hidden_dimension)
+            self.AE = VAE(num_item, AE_hidden_dimension)
             
         elif autoencoder == 'DAE':
-            self.AE = DAE(num_item*user_batch_size, AE_hidden_dimension)
+            self.AE = DAE(num_item, AE_hidden_dimension, noise = noise)
  
-        elif autoencoder == 'VAE_KAN':
-            pass
-            #self.AE = VAE_KAN(num_item*user_batch_size, AE_hidden_dimension)
+        elif autoencoder == 'DAE_KAN':
+        
+            self.AE = DAE_KAN(num_item*user_batch_size, AE_hidden_dimension, noise = noise)
         
         else:
             raise ValueError('autoencoder = VAE, DAE, or VAE_KAN')
@@ -104,9 +104,12 @@ class MatrixFactorization_VAE(nn.Module):
         #print(user.shape)
         #print(item.shape)
         self.CF_matrix = user.squeeze(1) @ item.squeeze(1).T # user_batch_size x num_items
-        self.CF_matrix = self.CF_matrix.view(-1) # FLATTEN IT!
         
+        # Normalize the CF matrix to range between 0 and 1
         self.CF_matrix = (self.CF_matrix - self.CF_matrix.min()) / (self.CF_matrix.max() - self.CF_matrix.min())
+        
+        self.CF_matrix = self.CF_matrix.unsqueeze(1) #batch_size x 1 x items
+        
         
         if self.ae == "VAE":
             Reconstruction,mean, log_var = self.AE(self.CF_matrix)
