@@ -17,6 +17,9 @@
 ## An implementation of U-Autorec with Fourier encoding of user and item information.
 
 *Dataset: MovieLens100K*
-*Best Result (Updating): 1.0081 (train-test split = 8:2)*
+
+*Train-test split: 8:2*
+
+**Best Result (Updating) RMSE: 1.0081**
 
 ## U-Autorec with KAN
