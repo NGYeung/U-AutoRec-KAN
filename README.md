@@ -1,4 +1,4 @@
-# User-based collaborative filtering recommender system with Auto Encoder
+# User-based collaborative filtering recommender system with Autoencoder
 
 For reinformance-based recommendation system, please refer to https://github.com/NGYeung/RL-playground/tree/main
 
