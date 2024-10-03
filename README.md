@@ -1,5 +1,7 @@
 # User-based collaborative filtering recommender system with Auto Encoder
 
+For reinformance-based recommendation system, please refer to https://github.com/NGYeung/RL-playground/tree/main
+
 This repository provides an implementation of a user-based CF rating prediction algorithm using linear autoencoder and KAN based autoencoder.
 
 *Repository Structure:*
