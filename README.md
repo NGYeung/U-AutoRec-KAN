@@ -14,7 +14,7 @@
 		ml-100k\.
 		
 
-## An implementation of U-Autorec with Fourier encoding of user and item information.
+## An implementation of U-Autorec with Fourier encoding of user/item info.
 
 *Dataset: MovieLens100K*
 
@@ -22,4 +22,4 @@
 
 **Best Result (Updating) RMSE: 1.0081**
 
-## U-Autorec with KAN
+## U-Autorec with KAN Layers and Fourier encoding or user/item info.
