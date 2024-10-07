@@ -27,3 +27,9 @@ This repository provides an implementation of a user-based CF rating prediction 
 **Best Result (Updating) RMSE: 1.0081**
 
 ## U-Autorec with KAN Layers and Fourier encoding or user/item info.
+
+*Dataset: MovieLens100K*
+
+*Train-test split: 8:2*
+
+**Best Result (Updating) RMSE: 0.9811**
