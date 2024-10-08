@@ -2,7 +2,7 @@
 
 For reinformance-based recommendation system, please refer to https://github.com/NGYeung/RL-playground/tree/main
 
-This repository provides an implementation of a user-based CF rating prediction algorithm using linear autoencoder and KAN based autoencoder.
+This repository provides an implementation of a user-based CF rating prediction algorithm using and KAN based autoencoder.
 
 *Repository Structure:*
 
@@ -16,20 +16,19 @@ This repository provides an implementation of a user-based CF rating prediction 
 		MovieLens4Colab.py
 	Raw Data:
 		ml-100k\.
-		
+		ml-1M\.
 
-## An implementation of U-Autorec with Fourier encoding of user/item info.
+## An implementation of U-Autorec with with KAN Layers.
 
-*Dataset: MovieLens100K*
+*Dataset: [MovieLens100K](https://grouplens.org/datasets/movielens/100k/) and [MovieLens1M](https://grouplens.org/datasets/movielens/1m/)*
 
-*Train-test split: 8:2*
+*The Implementation of KAN: [FastKan](https://github.com/ZiyaoLi/fast-kan)* 
 
-**Best Result (Updating) RMSE: 1.0081**
+*Train-test split: 9:1*
 
-## U-Autorec with KAN Layers and Fourier encoding or user/item info.
+**100K Best Result (Updating) RMSE: 0.9811**
 
-*Dataset: MovieLens100K*
+**1M Best Result (Updating) RMSE: 0.9535**
 
-*Train-test split: 8:2*
+**For reference: 1M Dataset same parameters with nn.Linear: RMSE 0.9643**
 
-**Best Result (Updating) RMSE: 0.9811**

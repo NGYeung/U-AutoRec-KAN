@@ -12,7 +12,7 @@ import torch.nn as nn
 import math
 
 
-from AutoEncoders import VAE,  DAE
+from AutoEncoders import DAE, DAE_KAN
 
 
 
@@ -64,7 +64,7 @@ class MatrixFactorization_AE(nn.Module):
         self.user_projection = nn.Sequential(
             nn.Linear(user_feature_size, embedding_dimension),
             nn.ReLU(), #ReLU or SeLU
-            #nn.Dropout(0.1),
+            nn.Dropout(0.1),
             nn.LayerNorm(embedding_dimension)
             )
         
@@ -72,7 +72,7 @@ class MatrixFactorization_AE(nn.Module):
         self.item_projection = nn.Sequential(
             nn.Linear(item_feature_size, embedding_dimension),
             nn.ReLU(), #ReLU or SeLU
-            #nn.Dropout(0.1),
+            nn.Dropout(0.1),
             nn.LayerNorm(embedding_dimension)
             )
         
@@ -89,10 +89,10 @@ class MatrixFactorization_AE(nn.Module):
  
         elif autoencoder == 'DAE_KAN':
         
-            self.AE = DAE_KAN(num_item*user_batch_size, AE_hidden_dimension, noise = noise)
+            self.AE = DAE_KAN(num_item, AE_hidden_dimension, noise = noise)
         
         else:
-            raise ValueError('autoencoder = VAE, DAE, or VAE_KAN')
+            raise ValueError('autoencoder = VAE, DAE, or DAE_KAN')
         torch.autograd.set_detect_anomaly(True)
             
 
@@ -123,7 +123,7 @@ class MatrixFactorization_AE(nn.Module):
         
             return Reconstruction, mean, log_var
         
-        if self.ae =='DAE':
+        if self.ae =='DAE' or self.ae == 'DAE_KAN':
             Reconstruction,_, _ = self.AE(self.CF_matrix)
             if torch.isnan(Reconstruction).any():
                 print("NaNs found in Reconstruction")

@@ -16,14 +16,187 @@ from transformers import BertTokenizer
 from torch.utils.data import DataLoader
 #import spacy
 
-
-
+filepath_1m ={'user': r"/content/drive/MyDrive/RecSys/ml-1m/users.csv",
+              'rating': r"/content/drive/MyDrive/RecSys/ml-1m/ratings.csv",
+              'movie': r"/content/drive/MyDrive/RecSys/ml-1m/movies.csv"}
 
 filepath = {
     'user': r"/content/drive/MyDrive/RecSys/ml-100k/User_EVERYTHING.csv",
     'rating': r"/content/drive/MyDrive/RecSys/ml-100k/rating_info.csv",
     'movie': r"/content/drive/MyDrive/RecSys/ml-100k/movies_info.csv",
     'embedding': r"/content/drive/MyDrive/RecSys/ml-100k/encoded_text_dim16.pt"}
+
+
+
+
+class Movie_1M():
+    
+    def __init__(self, filename = filepath_1m):
+        
+        self.path = filename
+        self.users = None
+        self.items = None
+        self.data = None #The file with the ratings
+        self.load()
+        
+    
+    def load(self):
+        
+        self.users = pd.read_csv(self.path['user'])
+        self.user_num = 6040
+        self.data = pd.read_csv(self.path['rating'])
+        self.item_num = 3952
+        self.items = pd.read_csv(self.path['movie']) 
+        
+        self.users = self.users[['user_id', 'age', 'gender','zip_code','occupation']]
+        self.users['user_id'] = self.users['user_id'].apply(int)
+
+        self.users['age'] = self.users['age'].apply(eval)
+        self.users['zip_code'] = self.users['zip_code'].apply(eval)
+        self.users['occupation'] = self.users['occupation'].apply(eval)
+        self.items = self.items[['movie_id','genre']]
+        self.items['movie_id'] = self.items['movie_id'].apply(int)
+        self.items['genre'] = self.items['genre'].apply(eval)
+        
+        big_table = pd.merge(self.users, self.data, left_on='user_id', right_on='user_id')
+        big_table = pd.merge(big_table, self.items, left_on='movie_id', right_on='movie_id')
+        self.data = big_table
+        self.data = self.data[['user_id','age','zip_code','occupation', 'movie_id', 'genre', 'rating']]
+
+    
+    
+    def __len__(self):
+        
+        return len(self.data)
+
+    
+    
+    def __getitem__(self, idx):
+        
+        data = self.data[['user_id','age','zip_code','occupation', 'movie_id', 'genre', 'rating']]
+        
+        return data.iloc[idx]
+    
+    
+    
+    def preprocessor(self, training_set_indicies, fourier = True):
+        
+        train_rating = np.zeros((self.user_num, self.item_num))
+        test_rating = np.zeros((self.user_num, self.item_num))
+        train_mask = np.zeros((self.user_num, self.item_num))
+        test_mask = np.zeros((self.user_num, self.item_num))
+        user_matrix = np.zeros((self.user_num, 39)) #remember the calculate and change the number
+        if fourier:
+            user_matrix = np.zeros((self.user_num, 67)) 
+            
+        item_matrix = np.zeros((self.item_num, 19)) #remember to calculate and change the number
+        if fourier:
+            item_matrix = np.zeros((self.item_num, 21)) 
+            
+        user_genre_ct = np.zeros((self.user_num, 18))
+        user_genre_rt = np.zeros((self.user_num, 18))
+        #item_genre = np.zeros((fullset.user_num, 20))
+        #user_genre = np.zeros((self.user_num, 20))
+        movie_avg = np.zeros((self.item_num,))
+        movie_ct = np.zeros((self.item_num,))
+        
+        
+        # the rating matrix
+        for i, data in enumerate(self.data.values):
+            # keys: user_id:0 age: 1,  zip_code: 2, occupation: 3, movie_id: 4. genre:5, rating:6
+            if i in training_set_indicies:
+                #print(data)
+                train_rating[int(data[0])-1,int(data[4])-1] = int(data[6])
+                train_mask[int(data[0])-1,int(data[4])-1]  = 1
+                user_genre_ct[int(data[0])-1,:] += np.array(data[5])
+                user_genre_rt[int(data[0])-1,:] += int(data[6])*np.array(data[5])
+                movie_ct[int(data[4])-1] += 1
+                movie_avg[int(data[4])-1] += int(data[6])
+                
+            else:
+                test_rating[int(data[0])-1,int(data[4])-1] = int(data[6])
+                test_mask[int(data[0])-1,int(data[4])-1] = 1
+                
+                
+        
+        user_genre_rt = user_genre_rt / (user_genre_ct+1e-12) #user's average score for each genre
+        movie_avg /= (movie_ct + 1e-12) # average rating for each movie  (in the training set)
+    
+        
+        for i, user in enumerate(self.users.values): 
+            
+            
+            if not fourier: # age: 7 gender: 1 location: 11 occupation: 20 + genre = 18
+                user_matrix[i,:39] = np.concatenate([np.atleast_1d(item).ravel() for item in user])[1:] 
+                #user_matrix[i,39:] = user_genre_rt[i]
+                
+            else:
+
+                user_matrix[0] = user[2]
+                # age
+                bases = fourier_bases(7, 10)
+                age = user[1]
+                age_ = np.zeros((10,))
+                for j, a in enumerate(age):
+                    age_ += a*bases[j]
+                user_matrix[i,1:11] = age_
+                
+
+                #location
+                bases = fourier_bases(11, 15)
+                location = user[3]
+                location_ = np.zeros((15,))
+                for j, z in enumerate(location):
+                    location_ += z*bases[j]
+                    
+                user_matrix[i, 12:27] = location_
+                
+                #occupation
+                bases = fourier_bases(20, 20)
+                occupation = user[4]
+                occupation_ = np.zeros((20,))
+                for j, z in enumerate(occupation):
+                    occupation_ += z*bases[j]
+                    
+                user_matrix[i, 27:47] = occupation_
+                
+                #genre_rating
+                bases = fourier_bases(18, 20)
+                genre = np.zeros((20,))
+                for j, z in enumerate(user_genre_rt[i]):
+                    genre += z*bases[j]
+                    
+                #user_matrix[i, 47:] = genre
+                
+        for k, item in enumerate(self.items.values):
+            n = item[0]
+            
+            if not fourier:
+                
+                item_matrix[n-1,:18] = np.concatenate([np.atleast_1d(i).ravel() for i in item])[1:]
+                item_matrix[n-1,18] = movie_avg[n-1]
+                
+                
+                
+            else:
+                bases = fourier_bases(18, 20)
+                genre = np.zeros((20, ),dtype='float64')
+                
+                for j, z in enumerate(item[1]):
+                    genre += z*bases[j]
+                
+                    
+                item_matrix[n-1,:20] = genre
+                    
+                item_matrix[n-1,20] = movie_avg[n-1]
+
+        return train_rating, train_mask, test_rating, test_mask, user_matrix, item_matrix
+    
+    
+    
+    
+
+
 
 class Movie_100K():
     
@@ -174,7 +347,14 @@ class Movie_100K():
         zip_code = [0 for i in range(11)]
         #print(occupation,average_rating)
         
-        row['age'] = row['age']/30
+        upperbound = [18,25,35,45,50,56]
+        age = [0 for i in range(7)]
+        i = 0
+        while i < 6 and upperbound[i] <= row['age']:
+            i += 1
+        age[i] = 1
+            
+        row['age'] = age
         
         row['occupation'] = rep
         row['average_rating'] = average_rating

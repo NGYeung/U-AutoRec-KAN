@@ -48,7 +48,7 @@ class AEReco:
         self.user = None
         self.film = None
         self.mask = None
-        self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate, weight_decay=1e-5)
         self.lossfn = nn.MSELoss()
         self.loss_log = []
         self.scheduler = optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, mode='min', factor=0.1, patience=10) #learning rate scheduler
@@ -149,7 +149,9 @@ class AEReco:
                     #print('check regularization:', loss, l2_loss)
                         
                     loss_tot = loss + self.lambda_l2 * l2_loss
-                    actual_loss = self.mse_loss(torch.round(recovered_matrix.squeeze(1)), self.target, self.mask)
+                    #r = torch.round(recovered_matrix.squeeze(1))
+                    r = recovered_matrix.squeeze(1)
+                    actual_loss = self.mse_loss(r, self.target, self.mask)
 
                     
                     total = self.mask.shape[0]*self.mask.shape[1]
@@ -223,7 +225,9 @@ class AEReco:
                 #print(recovered_matrix, target)
                 if torch.isnan(recovered_matrix).any():
                     raise ValueError("NaNs detected in the recovered matrix output.")
-                loss = self.mse_loss(torch.round(recovered_matrix.squeeze(1)), self.target, self.mask)*torch.sum(mask)
+                #r = torch.round(recovered_matrix.squeeze(1))
+                r = recovered_matrix.squeeze(1)
+                loss = self.mse_loss(r, self.target, self.mask)*torch.sum(mask)
 
                 test_loss =  test_loss + loss
               
@@ -281,7 +285,7 @@ class AEReco:
             
         for i, user in enumerate(fullset.users.values):
            
-            user_matrix[i,:39] = np.concatenate([np.atleast_1d(item).ravel() for item in user])[1:]
+            user_matrix[i,:45] = np.concatenate([np.atleast_1d(item).ravel() for item in user])[1:]
             
     
         for i, item in enumerate(fullset.items.values):
@@ -292,7 +296,7 @@ class AEReco:
         
             item_matrix[i,:25] = np.concatenate([np.atleast_1d(i).ravel() for i in item])[1:]
 
-        user_matrix[:,39:] = user_genre
+        user_matrix[:,45:] = user_genre
         item_matrix[:,25] = movie_avg
         
         return rating_matrix, user_matrix, item_matrix, mask
