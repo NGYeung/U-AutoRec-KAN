@@ -1,4 +1,4 @@
-# User-based collaborative filtering recommender system with Autoencoder
+# User-based collaborative filtering recommender system with Denoising Autoencoder with KAN Layers
 
 For reinformance-based recommendation system, please refer to https://github.com/NGYeung/RL-playground/tree/main
 
@@ -18,7 +18,11 @@ This repository provides an implementation of a user-based CF rating prediction 
 		ml-100k\.
 		ml-1M\.
 
-## An implementation of U-Autorec with with KAN Layers.
+
+### An Illustration of the model
+
+
+### Datasets and Results
 
 *Dataset: [MovieLens100K](https://grouplens.org/datasets/movielens/100k/) and [MovieLens1M](https://grouplens.org/datasets/movielens/1m/)*
 
