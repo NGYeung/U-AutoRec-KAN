@@ -7,15 +7,18 @@ This repository provides an implementation of a user-based CF rating prediction 
 *Repository Structure:*
 
 	Training Notebook - Recommender.ipynb
+ 
 	Model files:
 		Recommender.py 
 		model\AutoEncoders.py
+  		model\pre_trained.pt
 	Dataset:
-		MovieLens.py
-		MovieLens4Colab.py
-	Raw Data:
-		ml-100k\.
-		ml-1M\.
+		MovieLens4Colab.py 
+  		(Including dataset construction and pre-processing method. Need to replace the link to source files for your own use.)
+	Configuration:
+ 		MovieLens100K.yaml
+   		MovieLens1M.yaml
+		
 
 
 ### An Illustration of the model
