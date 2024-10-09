@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 """
-A collections of autoencoder models for future use.
-
 Created on Thu Sep 26 18:12:11 2024
 
 @author: Yiyang Liu
@@ -21,11 +19,6 @@ pip install .
 
 '''
 
-# or KAN implementation
-
-
-
-
 
 
 # Denoiseing Autoencoder to reconstruct the CF interaction matrix given known ratings.
@@ -37,7 +30,7 @@ class DAE(nn.Module):
         Parameters
         ----------
         matrix_size : int
-            the size of the CF matrix (Flattened)
+            the number of items
            
         hidden_size : int
             the size of hidden representation
@@ -62,19 +55,19 @@ class DAE(nn.Module):
         
         self.encoder = nn.Sequential(
             nn.Linear(matrix_size, self.hidden),
-            #nn.SELU(), # Parameter to tune: the size of hidden layer (Rank of CF??)
             )
         
         self.decoder = nn.Sequential(
             nn.Linear(self.hidden, matrix_size),
-            #nn.SELU(),
-            #nn.Sigmoid() #sigmoid for non-exclusive outputs
             )
         self.b = nn.Parameter(torch.randn(matrix_size))
 
 
     
     def forward(self, da_CF_matrix):
+        '''
+        da_CF_matrix size: batch_size x 1 x num_items
+        '''
         
     
         gaussian_noise = torch.rand_like(da_CF_matrix) #create the gaussian noise. std = 1 mean = 0
@@ -99,11 +92,10 @@ class DAE_KAN(nn.Module):
         Parameters
         ----------
         matrix_size : int
-            the size of the CF matrix (Flattened)
+            the number of items
            
         hidden_size : int
             the size of hidden representation
-            (recommendation: calculate with SVD)
             
         noise: float
             the strength of the noise add to the input. Default = 0.05
@@ -129,22 +121,23 @@ class DAE_KAN(nn.Module):
         self.decoder = nn.Sequential(
             nn.Dropout(0.1),
             FastKANLayer(self.hidden, matrix_size),
-            #nn.Sigmoid() #sigmoid for non-exclusive outputs
             )
         self.b = nn.Parameter(torch.randn(matrix_size))
 
     
     def forward(self, da_CF_matrix):
-        
-        #print('KAN')
+        '''
+        batch_size x 1 x num_items
+        '''
+
         gaussian_noise = torch.rand_like(da_CF_matrix) #create the gaussian noise. std = 1 mean = 0
 
         noise = gaussian_noise*self.noise_strength
         hidden_rep = self.encoder(da_CF_matrix + noise)
    
         decoded  = self.decoder(hidden_rep + self.mu) 
-        #print(decoded.shape)
-        #decoded = decoded + self.b
+   
+        decoded = decoded + self.b
         decoded =  torch.sign(decoded)*decoded
         
         return decoded, None, None # return both
