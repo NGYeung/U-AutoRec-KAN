@@ -14,8 +14,8 @@ import torch.nn as nn
 
 from transformers import BertTokenizer
 from torch.utils.data import DataLoader
-#import spacy
 
+# Replace with your own pre-processed data.
 filepath_1m ={'user': r"/content/drive/MyDrive/RecSys/ml-1m/users.csv",
               'rating': r"/content/drive/MyDrive/RecSys/ml-1m/ratings.csv",
               'movie': r"/content/drive/MyDrive/RecSys/ml-1m/movies.csv"}
@@ -23,9 +23,7 @@ filepath_1m ={'user': r"/content/drive/MyDrive/RecSys/ml-1m/users.csv",
 filepath = {
     'user': r"/content/drive/MyDrive/RecSys/ml-100k/User_EVERYTHING.csv",
     'rating': r"/content/drive/MyDrive/RecSys/ml-100k/rating_info.csv",
-    'movie': r"/content/drive/MyDrive/RecSys/ml-100k/movies_info.csv",
-    'embedding': r"/content/drive/MyDrive/RecSys/ml-100k/encoded_text_dim16.pt"}
-
+    'movie': r"/content/drive/MyDrive/RecSys/ml-100k/movies_info.csv"}
 
 
 
@@ -85,21 +83,7 @@ class Movie_1M():
         test_rating = np.zeros((self.user_num, self.item_num))
         train_mask = np.zeros((self.user_num, self.item_num))
         test_mask = np.zeros((self.user_num, self.item_num))
-        user_matrix = np.zeros((self.user_num, 39)) #remember the calculate and change the number
-        if fourier:
-            user_matrix = np.zeros((self.user_num, 67)) 
-            
-        item_matrix = np.zeros((self.item_num, 19)) #remember to calculate and change the number
-        if fourier:
-            item_matrix = np.zeros((self.item_num, 21)) 
-            
-        user_genre_ct = np.zeros((self.user_num, 18))
-        user_genre_rt = np.zeros((self.user_num, 18))
-        #item_genre = np.zeros((fullset.user_num, 20))
-        #user_genre = np.zeros((self.user_num, 20))
-        movie_avg = np.zeros((self.item_num,))
-        movie_ct = np.zeros((self.item_num,))
-        
+      
         
         # the rating matrix
         for i, data in enumerate(self.data.values):
@@ -108,89 +92,14 @@ class Movie_1M():
                 #print(data)
                 train_rating[int(data[0])-1,int(data[4])-1] = int(data[6])
                 train_mask[int(data[0])-1,int(data[4])-1]  = 1
-                user_genre_ct[int(data[0])-1,:] += np.array(data[5])
-                user_genre_rt[int(data[0])-1,:] += int(data[6])*np.array(data[5])
-                movie_ct[int(data[4])-1] += 1
-                movie_avg[int(data[4])-1] += int(data[6])
                 
             else:
                 test_rating[int(data[0])-1,int(data[4])-1] = int(data[6])
                 test_mask[int(data[0])-1,int(data[4])-1] = 1
                 
                 
-        
-        user_genre_rt = user_genre_rt / (user_genre_ct+1e-12) #user's average score for each genre
-        movie_avg /= (movie_ct + 1e-12) # average rating for each movie  (in the training set)
     
-        
-        for i, user in enumerate(self.users.values): 
-            
-            
-            if not fourier: # age: 7 gender: 1 location: 11 occupation: 20 + genre = 18
-                user_matrix[i,:39] = np.concatenate([np.atleast_1d(item).ravel() for item in user])[1:] 
-                #user_matrix[i,39:] = user_genre_rt[i]
-                
-            else:
-
-                user_matrix[0] = user[2]
-                # age
-                bases = fourier_bases(7, 10)
-                age = user[1]
-                age_ = np.zeros((10,))
-                for j, a in enumerate(age):
-                    age_ += a*bases[j]
-                user_matrix[i,1:11] = age_
-                
-
-                #location
-                bases = fourier_bases(11, 15)
-                location = user[3]
-                location_ = np.zeros((15,))
-                for j, z in enumerate(location):
-                    location_ += z*bases[j]
-                    
-                user_matrix[i, 12:27] = location_
-                
-                #occupation
-                bases = fourier_bases(20, 20)
-                occupation = user[4]
-                occupation_ = np.zeros((20,))
-                for j, z in enumerate(occupation):
-                    occupation_ += z*bases[j]
-                    
-                user_matrix[i, 27:47] = occupation_
-                
-                #genre_rating
-                bases = fourier_bases(18, 20)
-                genre = np.zeros((20,))
-                for j, z in enumerate(user_genre_rt[i]):
-                    genre += z*bases[j]
-                    
-                #user_matrix[i, 47:] = genre
-                
-        for k, item in enumerate(self.items.values):
-            n = item[0]
-            
-            if not fourier:
-                
-                item_matrix[n-1,:18] = np.concatenate([np.atleast_1d(i).ravel() for i in item])[1:]
-                item_matrix[n-1,18] = movie_avg[n-1]
-                
-                
-                
-            else:
-                bases = fourier_bases(18, 20)
-                genre = np.zeros((20, ),dtype='float64')
-                
-                for j, z in enumerate(item[1]):
-                    genre += z*bases[j]
-                
-                    
-                item_matrix[n-1,:20] = genre
-                    
-                item_matrix[n-1,20] = movie_avg[n-1]
-
-        return train_rating, train_mask, test_rating, test_mask, user_matrix, item_matrix
+        return train_rating, train_mask, test_rating, test_mask
     
     
     
@@ -199,6 +108,10 @@ class Movie_1M():
 
 
 class Movie_100K():
+    '''
+    The movie lens 100K dataset for the reinforcement learning playground
+    '''
+    
     
     def __init__(self, filename = filepath, for_training = False, embedding = False):
         '''
@@ -238,13 +151,13 @@ class Movie_100K():
         user:{'user_id':[Int], 'age':[Int], gender:[Int] 'occupation':nparray}
         '''
         self.item = self.data.iloc[idx,:].to_dict()
-        #self.item.pop('item_id_y')
+    
         self.item.pop('item_id')
         self.item.pop('Unnamed: 0')
-        #self.item.pop('Unnamed: 0_y')
+ 
         if self.need_embedding:
             self.item['title_embedding'] = self.embedding[idx,:]
-        #orient='records' exclude the index
+
         return self.item
     
     
@@ -260,23 +173,16 @@ class Movie_100K():
         self.users = self.users.apply(self.process_user, axis = 1)
         self.users = self.users[['user_id', 'age', 'gender','zip_code','occupation']]
         self.user_num = self.users.shape[0]
-        #print(users.iloc[1])
+
         self.items = pd.read_csv(self.path['movie'])
-        #print(movies.iloc[1])
+ 
         self.items = self.items.apply(self.process_movie, axis = 1)
         self.items = self.items[['movie_id','date','genre']]
         self.item_num = self.items.shape[0]
-        #print(movies.iloc[1])
+
         ratings = pd.read_csv(self.path['rating'])
-        #movie_avg = ratings[['item_id','rating']].groupby('item_id').mean().reset_index()
-        #movie_avg.columns = ['item_id','film_avg_rating']
-        #self.items = pd.merge(self.items, movie_avg, left_on='movie_id', right_on='item_id')
-        
-        #self.items = self.items.drop('item_id')
+  
    
-        
-        
-        # merge all into a big table
         big_table = pd.merge(self.users, ratings, left_on='user_id', right_on='user_id')
         big_table = pd.merge(big_table, self.items, left_on='item_id', right_on='movie_id')
         
@@ -286,10 +192,7 @@ class Movie_100K():
             self.embedding = torch.load(self.path['embedding'])
 
         self.items = self.items[['movie_id','date','genre']]
-        #self.items['title_embedding'] = self.embedding
-        
-        
-    
+
     
     
     def process_movie(self,row):
@@ -345,7 +248,6 @@ class Movie_100K():
         
         average_rating = list(row.iloc[4:24])
         zip_code = [0 for i in range(11)]
-        #print(occupation,average_rating)
         
         upperbound = [18,25,35,45,50,56]
         age = [0 for i in range(7)]
@@ -408,7 +310,7 @@ def Data2Embedding(Data):
     
     
     return np.array(stack)
-    # use np array because we want to use njit for state operation.
+
 
 
 def fourier_bases(frequency_count, n_points):
@@ -434,11 +336,10 @@ def fourier_bases(frequency_count, n_points):
     
     
 class CombinedDataset:
-    def __init__(self, dataset1, dataset2, dataset3):
+    def __init__(self, dataset1, dataset2):
         assert len(dataset1) == len(dataset2), "Datasets must be of the same length"
         self.dataset1 = dataset1
         self.dataset2 = dataset2
-        self.dataset3 = dataset3
 
     def __len__(self):
         return len(self.dataset1)
@@ -446,5 +347,31 @@ class CombinedDataset:
     def __getitem__(self, idx):
         data1 = self.dataset1[idx]
         data2 = self.dataset2[idx]
-        data3 = self.dataset3[idx]
-        return data1, data2, data3
+   
+        return data1, data2
+        
+        
+def pre_process_100K(train, test, user_num=943, item_num=1682):
+    '''
+    spit out the rating matrices and the masks
+    '''
+    
+    train_rating = np.zeros((user_num, item_num))
+    test_rating = np.zeros((user_num, item_num))
+    train_mask = np.zeros((user_num, item_num))
+    test_mask = np.zeros((user_num, item_num))
+      
+        
+        # the rating matrix
+        for i, data in enumerate(train):
+            # keys: user_id:0 age: 1,  zip_code: 2, occupation: 3, movie_id: 4. genre:5, rating:6
+
+            train_rating[int(data[0])-1,int(data[1])-1] = int(data[2])
+            train_mask[int(data[0])-1,int(data[1])-1]  = 1
+            
+        for j, data in enumerate(test):
+                
+            test_rating[int(data[0])-1,int(data[1])-1] = int(data[2])
+            test_mask[int(data[0])-1,int(data[1])-1] = 1
+
+    return train_rating, train_mask, test_rating, test_mask 
