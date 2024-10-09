@@ -1,4 +1,4 @@
-# User-based collaborative filtering recommender system with Autoencoder with KAN Layers
+# User-based collaborative filtering recommender system with Denoising Autoencoder with KAN Layers
 
 For reinformance-based recommendation system, please refer to https://github.com/NGYeung/RL-playground/tree/main
 
