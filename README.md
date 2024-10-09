@@ -10,7 +10,6 @@ This repository provides an implementation of a user-based CF rating prediction 
 	Model files:
 		Recommender.py 
 		model\AutoEncoders.py
-		model\Matrix_Models.py
 	Dataset:
 		MovieLens.py
 		MovieLens4Colab.py
@@ -30,9 +29,9 @@ This repository provides an implementation of a user-based CF rating prediction 
 
 *Train-test split: 9:1*
 
-**100K Best Result (Updating) RMSE: 0.9811**
+**100K Best Result RMSE: TBD**
 
-**1M Best Result (Updating) RMSE: 0.9535**
+**MovieLens 1M Result RMSE: 0.7921 (Average over 5 cross-validations) !!!!!! **
 
-**For reference: 1M Dataset same parameters with nn.Linear: RMSE 0.9643**
+
 
