@@ -32,9 +32,9 @@ This repository provides an implementation of a user-based CF rating prediction 
 
 *Train-test split: 9:1*
 
-**100K Best Result RMSE: TBD**
+**100K Best Result RMSE: 0.54**
 
-**MovieLens 1M Result RMSE: 0.7921 (Average over 5 cross-validations) !!!!!! **
+**MovieLens 1M Result RMSE: 0.7921 (Average over 5 cross-validations **
 
 
 
