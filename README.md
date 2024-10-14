@@ -87,7 +87,7 @@ $$\min \limits_{\{\Phi\}} \Phi_1 \circ \Phi_k (u_j) + \Omega_{regularization}$$
 In this section, we provide experiment results and present how KAN can potentially contribute to the interpretability.
 
 
-### Dataset 1: [MovieLens1M](https://grouplens.org/datasets/movielens/1m/
+### Dataset 1: [MovieLens1M](https://grouplens.org/datasets/movielens/1m/)
 
 The dataset contain 1,000,209 anonymous ratings of approximately 3,900 movies 
 made by 6,040 MovieLens users who joined MovieLens in 2000.
