@@ -69,12 +69,13 @@ Depending on the implementation, $`\phi`$ is chosen as b-splines or chebyshev po
 
 AutoRec aims to map the partial observations to the full rating matrix, and the intuition is to equip the architecture with stronger approximator of functions. That is, the KAN layers. Let $$\Phi_i$$ be the learnable in the i-th KAN layer, the reconstruction of user preference $$u_j$$ can be written as
 
-$$\tilde u_j = \Phi_1 \circ \Phi_k (u_j)$$
+$$\tilde u_j = \Phi_1 \circ \cdots \circ \Phi_k (u_j)$$
 
 Thus, the optimization problem to solve becomes
 
-$$\min \limits_{\{\Phi\}} \Phi_1 \circ \Phi_k (u_j) + \Omega_{regularization}$$
+$$\min \limits_{\{\Phi\}} \Phi_1 \circ \cdots \circ \Phi_k (u_j) + \Omega_{regularization}$$
 
+*$`A \circ B = A(B)`$ is the notation for function compositions.*
 
 
 ### An Illustration of the model
