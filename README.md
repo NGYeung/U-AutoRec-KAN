@@ -29,7 +29,9 @@ Collaborative Filtering is a subset of recommender systems that suggests items t
 
 ### AutoRec with MLP
 
-[AutoRec](https://users.cecs.anu.edu.au/~akmenon/papers/autorec/autorec-paper.pdf) is proposed by S Sedhain et al. in 2015. It directly takes the documented ratings as the input and uses autoencoders' great ability at learning the latent representations to predict users' preference (ratings) of uncountered items.
+[AutoRec](https://users.cecs.anu.edu.au/~akmenon/papers/autorec/autorec-paper.pdf) is proposed by S Sedhain et al. in 2015. It directly takes the documented ratings as the input and uses autoencoders' great ability at learning the latent representations to predict users' preference (ratings) of uncountered items. The problem is stated as follows:
+
+Suppose we have $`m`$ users and $`u`$ items in the dataset, the dataset provides us with a partial observation of the user-item interaction matrix, the i-th row of which is the rating from the i-th user for all items. Thus, we can conveniently denote 
 
 ---
 
