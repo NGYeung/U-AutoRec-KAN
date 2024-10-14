@@ -80,7 +80,7 @@ $$\min \limits_{\{\Phi\}} \Phi_1 \circ \cdots \circ \Phi_k (u_j) + \Omega_{regul
 
 ### An Illustration of the model
 
-![image](model_illustration.jpg)
+<img src="model_illustration.jpg" alt="image" width="80%">
 
 
 
@@ -89,10 +89,17 @@ $$\min \limits_{\{\Phi\}} \Phi_1 \circ \cdots \circ \Phi_k (u_j) + \Omega_{regul
 In this section, we provide experiment results and present how KAN can potentially contribute to the interpretability.
 
 
-### Dataset 1: [MovieLens1M](https://grouplens.org/datasets/movielens/1m/)
+### Dataset 1: [MovieLens1M](https://grouplens.org/datasets/movielens/1m/)  RMSE: 0.8093 (10-fold CV)  MAE: 0.6387 (10-fold CV)
 
 The dataset contain 1,000,209 anonymous ratings of approximately 3,900 movies 
 made by 6,040 MovieLens users who joined MovieLens in 2000.
 
-
 _Train-test split: 9:1, 10-fold cross-validatoin for ML-1M, and the RMSE is calculated as_ $`\sqrt{0.1\sum_i RMSE_i}`$
+
+
+### The training and testing loss by epoch (all 10-fold CV)
+
+<img src="training_loss_1m.png" alt="image" width="44.5%">         <img src="testing_loss_1m.png" alt="image" width="44%">
+
+
+
