@@ -50,7 +50,7 @@ where $`\theta = \{W,V, \mu, b\}`$ and $`f`$ and $`g`$ are activition functions.
 
 MLPs are awesome approximators of functions, and neural Networks as huge black boxes work on the assumption that the gazillion of parameters will successfully model the latent relations among observations. 
 
-[Kolmogorov-Arnold Network](https://arxiv.org/abs/2404.19756), proposed by Z liu et al. is an alternative neural network structure to MLPs, based on the Kolmogorov-Arnold representation theorem. KAN replaces the linear weights and fixed activation functions in MLPs with non-linear learnable activations.
+[Kolmogorov-Arnold Network](https://arxiv.org/abs/2404.19756), proposed by Z liu et al. is an alternative neural network structure to MLPs based on the Kolmogorov-Arnold representation theorem in mathematical analysis. KAN replaces the linear weights and fixed activation functions in MLPs with non-linear learnable activations.
 
 Let's put this in mathematical terms. A function $`f(x)`$ is approximated by MLPs as
 
