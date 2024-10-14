@@ -17,6 +17,7 @@ _Repository Structure:_
 ├── AutoRec_KAN.py (containing the main model)
 ├── model
 │   ├── AutoEncoders.py (Implementations of denoised autoencoders)
+|   ├── ml1m_CV.json (All training results in json)
 ├── MovieLens4Colab.py (Dataset classes)
 ├── MovieLens100K.yaml (configuration file for ML-100K)
 └── MovieLens1M.yaml (configuration file for ML-1M)
