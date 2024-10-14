@@ -22,7 +22,7 @@ _Repository Structure:_
 └── MovieLens1M.yaml
 ```
 
-## Introdution
+## Introduction
 
 Here is a brief introduction to everything touched in this repository... The article is in production, but here is a preview...
 
