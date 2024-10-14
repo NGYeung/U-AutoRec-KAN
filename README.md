@@ -30,11 +30,11 @@ This repository provides an implementation of a user-based CF rating prediction 
 
 *The Implementation of KAN: [FastKan](https://github.com/ZiyaoLi/fast-kan)* 
 
-*Train-test split: 9:1*
+*Train-test split: 9:1, 10-Fold Cross-validatoin for ML-1M*
 
-**100K Best Result RMSE: 0.54**
 
-**MovieLens 1M Result RMSE: 0.7921 (Average over 5 cross-validations **
+
+
 
 
 
