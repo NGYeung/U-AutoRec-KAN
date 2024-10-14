@@ -4,22 +4,22 @@ For reinformance-based recommendation system, please refer to https://github.com
 
 This repository provides an implementation of a user-based CF rating prediction algorithm using and KAN based autoencoder.
 
-_The Implementation of KAN: [FastKan](https://github.com/ZiyaoLi/fast-kan)_
+**Pretrained model can be downloaded at [here](https://drive.google.com/file/d/1yXX-xQybNtPjrBTCU2gKUVu7F3spOHxq/view?usp=sharing)**
 
+_The Implementation of KAN: [FastKan](https://github.com/ZiyaoLi/fast-kan)_
 
 
 _Repository Structure:_
 
 ```plaintext
 .
-├── Recommender.ipynb
-├── Recommender.py
+├── Train_Validate_1M.ipynb (The notebook for training. Example usage.)
+├── AutoRec_KAN.py (containing the main model)
 ├── model
-│   ├── AutoEncoders.py
-│   ├── pre_trained.pt
-├── MovieLens4Colab.py
-├── MovieLens100K.yaml
-└── MovieLens1M.yaml
+│   ├── AutoEncoders.py (Implementations of denoised autoencoders)
+├── MovieLens4Colab.py (Dataset classes)
+├── MovieLens100K.yaml (configuration file for ML-100K)
+└── MovieLens1M.yaml (configuration file for ML-1M)
 ```
 
 ## Introduction
