@@ -37,7 +37,7 @@ Collaborative Filtering is a subset of recommender systems that suggests items t
 *The problem statement:*
 Suppose we have $`m`$ users and $`n`$ items in the dataset, the dataset $`D`$ provides us with a partial observation of the user-item interaction matrix $`R`$, the i-th row of which is the rating from the i-th user for all items. Thus, we can conveniently denote user preferences as $`u_1, \cdots, u_m \in \mathbb{R}^n`$. 
 
-The autoencoder receives known ratings as the input, encodes them as a low-dimensional representation, and recoves the rating through a decoder structure. Let's denote the reconstruction of rating $`r`$ as $`\tilde r = h(r)`$. The algorithm solves the following optimization problem. 
+The autoencoder receives known ratings as the input, encodes them as a low-dimensional representation, and recovers the rating through a decoder structure. Let's denote the reconstruction of rating $`r`$ as $`\tilde r = h(r)`$. The algorithm solves the following optimization problem. 
 
 $$\min \limits_{r\in D} \| r - h(r;\theta) \|_2^2$$
 
@@ -53,19 +53,21 @@ MLPs are awesome approximators of functions, and neural Networks as huge black b
 [Kolmogorov-Arnold Network](https://arxiv.org/abs/2404.19756), proposed by Z liu et al. is an alternative neural network structure to MLPs, based on the Kolmogorov-Arnold representation theorem. KAN replaces the linear weights and fixed activation functions in MLPs with non-linear learnable activations.
 
 Let's put this in mathematical terms. A function $`f(x)`$ is approximated by MLPs as
+
 $$ f(x)  = \sum \limits_i \alpha_i \sigma(w_i x + b_i)$$
+
 where $'w_i, b_i,\sigma'$ are, respectively, the weights, biases, and the activation function.
-On the other hand, KAN approximates any continuous function $`f(x)`$ as follows:
+On the other hand, KAN approximates any continuous function $`f(x)`$ as
 
 $$f(\mathbf{x}) = f(x_1, \ldots, x_n) = \sum_{q=0}^{2n} \Phi_{q} \left( \sum_{p=1}^{n} \phi_{q,p}(x_{p}) \right)$$
 
-Depending on the implementation, $`\phi`$ is chosen as b-spines or sometimes chebyshev polynomials. $`\Phi`$ in most cases, are linear operators that can be represented with matrices. Readers can refer to equation (2.6) in the KAN paper.
+Depending on the implementation, $`\phi`$ is chosen as b-splines or chebyshev polynomials. $`\Phi`$ in most cases, are linear operators that can be represented with matrices. Readers can refer to equation (2.6) in the KAN paper.
 
 
 
 ## The Model
 
-AutoRec aims to map the partial observations to the full rating matrix, and the intuition is to equip the architecture with stronger approximator of functions, that is, the KAN layers. Let $$\Phi_i$$ be the learnable in the i-th KAN layer, the reconstruction of user preference $$u_j$$ can be written as
+AutoRec aims to map the partial observations to the full rating matrix, and the intuition is to equip the architecture with stronger approximator of functions. That is, the KAN layers. Let $$\Phi_i$$ be the learnable in the i-th KAN layer, the reconstruction of user preference $$u_j$$ can be written as
 
 $$\tilde u_j = \Phi_1 \circ \Phi_k (u_j)$$
 
