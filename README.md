@@ -43,7 +43,7 @@ $$\min \limits_{r\in D} \| r - h(r;\theta) \|_2^2$$
 
 Here, the map $h'(r)$ can be written as
 $$h(r;\theta) = f(W+g(Vr+\mu)+b)$$
-where $`\theta = \{W,V, \mu, b\}`$ and $`f`$ and $`g`$ are activition functions.
+where $`\theta = \{W,V, \mu, b\}`$ and $`f`$ and $`g`$ are weights, biases, and activition functions.
 
 
 ### Kolmogorov-Arnold Network (KAN)
