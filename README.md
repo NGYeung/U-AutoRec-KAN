@@ -62,7 +62,6 @@ $$f(\mathbf{x}) = f(x_1, \ldots, x_n) = \sum_{q=0}^{2n} \Phi_{q} \left( \sum_{p=
 Depending on the implementation, $`\phi`$ is chosen as b-spines or sometimes chebyshev polynomials. $`\Phi`$ in most cases, are linear operators that can be represented with matrices. Readers can refer to equation (2.6) in the KAN paper.
 
 
----
 
 ## The Model
 
@@ -80,7 +79,7 @@ $$\min \limits_{\{\Phi\}} \Phi_1 \circ \Phi_k (u_j) + \Omega_{regularization}$$
 
 ![image](model_illustration.jpg)
 
----
+
 
 ## Results and Visualization
 
