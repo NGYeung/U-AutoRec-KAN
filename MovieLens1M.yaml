@@ -1,27 +1,27 @@
 # Configuration file for training with updated default values
-
-run_id: 'B1'              # A unique identifier for this run, so that we don't mess up the saved files.
-
+run_id: 'fold9' # A unique identifier for this run, so that we don't
+mess up the saved files.
 # Training parameters
-batch_size: 512           # Default batch size
-lr: 0.002                      # Default learning rate
-lambda: 0.05                 #Default regularizaton parameter, keep it small
-                                # the regularizaiton term is ~1000 while, the masked_mse is < 5
+batch_size: 512 # Default batch size
+lr: 0.0009 # Default learning rate
+lambda: 0.002 #Default regularizaton parameter, keep it small
 
+
+# the regularizaiton term is ~1000 while, the masked_mse is < 5
 # Data parameters, don't need to change this
-item_num: 3952              # Default total number of items, fixed for MovieLens 100K
-user_num: 6040                 # Default total number of users, fixed for MovieLens 100K
-item_feature_size: 19 #21  #19        # Default size of item features, fixed
-user_feature_size: 39 #67  #39       # Default size of user features, fixed
-test_split: 0.1              # Train-test split, can try 8:2 vs 9:1
-data_size: 1000209        # Size of the dataset, fixed
+item_num: 3952 # Default total number of items
+user_num: 6040 # Default total number of users
+item_feature_size: 19 #21 #19 # Default size of item features, fixed
+user_feature_size: 39 #67 #39 # Default size of user features, fixed
+test_split: 0.1 # Train-test split, can try 8:2 vs 9:1
+data_size: 1000209 # Size of the dataset, fixed
 
 # Model parameters
-AutoEncoder: "DAE_KAN"             # Default AutoEncoder model name
-bottle_neck_size: 512      # Default size of the bottleneck in the AutoEncoder, represent the latent dimension of rating matrix
-noise_level: 0.00              # For denoising autoencoder. the entries of input are normalized to 0-1, so 0.05 = 5% gaussian noise
-embedding_dim: 16          # Dimension of user/item encoding. represent the latent dimension of the input embedding.
-
+AutoEncoder: "DAE_KAN" # Default AutoEncoder model name
+bottle_neck_size: 512 # Default size of the bottleneck in the AutoEncoder represent the latent dimension of rating matrix
+noise_level: 0.25 # For denoising autoencoder. the entries of input are normalized to 0-1, so 0.05 = 5% gaussian noise
+embedding_dim: 12 # Dimension of user/item encoding. represent the latent dimension of the input embedding.
 # Checkpoint parameters
-checkpoint_prefix: "/content/drive/MyDrive/RecSys/model_checkpoints/VAE_KAN"  # Default checkpoint prefix (for Google Colab)
-checkpoint_save_every: 10      # Default frequency of saving checkpoints (in epochs)
+checkpoint_prefix: "/content/drive/MyDrive/RecSys/model_checkpoints/VAE_KAN_1M"
+# Default checkpoint prefix (for Google Colab)
+checkpoint_save_every: 20 # Default frequency of saving checkpoints (inepochs)
