@@ -79,6 +79,14 @@ $$\min \limits_{\{\Phi\}} \Phi_1 \circ \cdots \circ \Phi_k (u_j) + \Omega_{regul
 *$`A \circ B = A(B)`$ is the notation for function compositions.*
 
 
+## Model Architecture
+
+Our model includes an encoder layer, a bottleneck, a dropout layer (0.1), and a decoder layer. 
+
+Gaussian noise is added into the input, making it a denoising autoencoder. Detailded chose of parameters can be found in the configaruation files in the repository.
+
+
+
 ### An Illustration of the model
 
 <img src="model_illustration.jpg" alt="image" width="80%">
